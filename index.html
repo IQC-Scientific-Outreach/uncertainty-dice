@@ -104,6 +104,16 @@
   /* "on" state for toggle buttons (Show theory, Auto-roll). A class is used
      rather than aria-pressed because these buttons change their label too. */
   .btn.toggle.on{ background: var(--crimson); border-color: var(--crimson); color:#fff; }
+  /* Auto-roll is always red (it drives both sets); while running it turns a
+     darker red and shows a pause icon + "Pause". */
+  .btn.auto{ background: var(--crimson); border-color: var(--crimson); color:#fff; }
+  .btn.auto:hover{ background: var(--crimson-dark); border-color: var(--crimson-dark); }
+  .btn.auto.on{ background: var(--crimson-dark); border-color: var(--crimson-dark); }
+  /* Roll buttons colour-coded to match their dice */
+  .btn.roll-white{ background:#fff; border-color: var(--ink); color: var(--ink); }
+  .btn.roll-white:hover{ background: #f1eee6; }
+  .btn.roll-black{ background: var(--ink); border-color: var(--ink); color:#fff; }
+  .btn.roll-black:hover{ background: #2b2a33; }
   .btn.quiet{ border-color: var(--line); color: var(--ink-soft); }
   .btn.quiet:hover{ border-color: var(--ink); color: var(--ink); }
   .btn.small{ padding: 7px 12px; font-size: 12.5px; }
@@ -120,9 +130,21 @@
     display:grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
     column-gap: clamp(8px, 1.6vw, 22px); row-gap: 10px; align-items:center;
   }
-  .heads{ grid-column: 1 / -1; display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); column-gap: clamp(14px, 2.4vw, 32px); }
+  /* The two set blocks share ONE grid: row 1 = titles, row 2 = histograms,
+     row 3 = stats. Each .set-head uses display:contents, so its children
+     become grid items directly. If one title block wraps onto more lines,
+     the whole row grows, and both histograms still start at the same height. */
+  .heads{ grid-column: 1 / -1; display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+          grid-auto-flow: column; grid-template-rows: auto auto auto;
+          column-gap: clamp(14px, 2.4vw, 32px); row-gap: 10px; padding-bottom: 8px; }
+  .heads > .set-head{ display: contents; }
+  .heads .set-title{ align-self: start; }
   .set-head{ align-self:stretch; display:flex; flex-direction:column; gap:10px; padding-bottom: 8px; }
-  .set-title{ display:flex; flex-direction:column; align-items:flex-start; gap:2px; }
+  .set-title{ display:flex; flex-direction:column; align-items:stretch; gap:2px; }
+  /* Title and last-roll readout share one line: title left, readout right.
+     If there isn't room, the readout wraps onto the next line and, being the
+     only item there, sits at the left (justify-content: space-between). */
+  .title-row{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; column-gap:16px; row-gap:4px; }
   .set-title h2{ font: 700 24px var(--display); margin:0; letter-spacing:.01em; display:flex; align-items:center; gap:9px; }
   .set-title .role{ font: 600 12.5px var(--sans); color: var(--ink-soft); }
   .swatch{ width:18px; height:18px; border-radius:4px; border:1.5px solid var(--ink); display:inline-block; }
@@ -137,9 +159,11 @@
   .stat .v{ font: 700 15px var(--sans); color: var(--wave-top); font-variant-numeric: tabular-nums; }
   .stat.expected .v{ color: var(--ink-soft); }
   .stat.expected.hidden .v{ color: var(--ink-soft); font-weight: 600; font-style: italic; }
-  .last-roll{ display:flex; align-items:center; gap:6px; font: 600 12.5px var(--sans); color: var(--ink-soft); min-height: 30px; margin-left:auto; }
-  .last-roll .mini{ display:flex; gap:4px; }
-  .last-roll .sum{ font: 700 18px var(--sans); color: var(--crimson); min-width: 1.6em; font-variant-numeric: tabular-nums; }
+  /* last-roll readout sized to match the set title (24px display font) */
+  .last-roll{ display:flex; align-items:center; gap:8px; font: 700 24px var(--display); letter-spacing:.01em; color: var(--ink-soft); min-height: 30px; }
+  .last-roll > span:first-child{ white-space:nowrap; }
+  .last-roll .mini{ display:flex; gap:4px; flex-wrap:wrap; }
+  .last-roll .sum{ font: 700 24px var(--display); color: var(--crimson); min-width: 1.6em; font-variant-numeric: tabular-nums; }
   .last-roll .mini.shake{ animation: shake .28s ease; }
   @keyframes shake{ 0%{transform:rotate(0)} 25%{transform:rotate(-8deg)} 60%{transform:rotate(6deg)} 100%{transform:rotate(0)} }
 
@@ -186,7 +210,7 @@
   .face.rolled{ box-shadow: 0 0 0 3px var(--wave-top); }
   .face.flying{ z-index: 5; }
   .face.ghost{ position:fixed; margin:0; z-index: 20; pointer-events:none; }
-  .mini .face{ --face: 26px; }
+  .mini .face{ --face: 26px; border-radius: 20%; }
 
   /* group view (many dice): one face per value, with a count under it */
   .slot{ display:flex; flex-direction:column; align-items:center; gap:3px; }
@@ -236,11 +260,13 @@
     .mode-switch button{ padding: 8px 10px; font-size: 12px; }
     .set-title h2{ font-size: 20px; }
     .btn{ padding: 8px 10px; font-size: 12px; }
-    .last-roll{ margin-left:0; }
+    .last-roll, .last-roll .sum{ font-size: 20px; }
     .sq-state{ display:none; }
     :root{ --face: clamp(15px, calc((100vw - 150px) / 14.5), 44px); --face-gap: 2px; }
     .panel{ padding: 14px 10px 16px; }
     .mini .face{ --face: 18px; }
+    .last-roll{ gap:6px; flex-wrap:wrap; }
+    #run-controls .icon-btn{ min-width: 7.5em; }
     .sq-label{ font-size: 11px; }
     /* on phones the shared controls get their own full-width row */
     .mid-controls{ grid-column: 1 / -1; order: var(--order-mobile); flex-direction:row; flex-wrap:wrap; justify-content:center; gap:14px; }
@@ -282,9 +308,9 @@
     </div>
    </div>
    <div class="toolbar-run">
-    <!-- No visible label; the group name tells screen-reader users that
-         these buttons act on both sets at once. -->
-    <div class="btn-row" id="run-controls" role="group" aria-label="Rolling controls for both sets"></div>
+    <!-- Auto-roll, Roll white, Roll black, Clear. No visible label; the
+         group is named for screen-reader users. -->
+    <div class="btn-row" id="run-controls" role="group" aria-label="Rolling controls"></div>
    </div>
   </div>
 
@@ -509,25 +535,27 @@
   const allPairs = () => pairState.map((_, i) => i);
 
   /* ---------------- Build the lab ---------------- */
-  /* Top block for one set: title, histogram, stats row, ROLL button and the
-     last-roll readout. Element references are stored in ui[side] so the
+  /* Top block for one set: title line (name + last-roll readout), role
+     text, histogram and stats row. The ROLL buttons live in the top panel. Element references are stored in ui[side] so the
      drawing and rolling code can update them without querying the DOM. */
   function buildSetHead(side){
     const S = SIDES[side];
     const head = document.createElement('div');
     head.className = 'set-head';
     head.innerHTML =
-      '<div class="set-title"><h2><span class="swatch ' + S.swatch + '"></span>' + S.name + '</h2><span class="role">' + S.role + '</span></div>' +
+      '<div class="set-title">' +
+        '<div class="title-row">' +
+          '<h2><span class="swatch ' + S.swatch + '"></span>' + S.name + '</h2>' +
+          '<div class="last-roll"><span>Last roll</span><span class="mini"></span><span class="sum">&ndash;</span></div>' +
+        '</div>' +
+        '<span class="role">' + S.role + '</span>' +
+      '</div>' +
       '<div class="hist-wrap"><svg viewBox="0 0 480 250" role="img" aria-label="Histogram of ' + S.name.toLowerCase() + ' sums"></svg></div>' +
       '<div class="stats">' +
         '<div class="stat"><span class="k">Rolls</span><span class="v" data-s="n">0</span></div>' +
         '<div class="stat"><span class="k">Mean</span><span class="v" data-s="mean">&ndash;</span></div>' +
         '<div class="stat"><span class="k">Std dev <span class="sym">&sigma;</span></span><span class="v" data-s="sd">&ndash;</span></div>' +
         '<div class="stat expected hidden"><span class="k">Expected</span><span class="v" data-s="exp">&ndash;</span></div>' +
-      '</div>' +
-      '<div class="btn-row">' +
-        '<button class="btn primary" data-a="roll" aria-label="Roll the ' + S.name.toLowerCase() + '">ROLL</button>' +
-        '<div class="last-roll"><span>Last roll</span><span class="mini"></span><span class="sum">&ndash;</span></div>' +
       '</div>';
     const u = ui[side];
     u.svg = head.querySelector('svg');
@@ -538,7 +566,6 @@
     u.expBox = head.querySelector('.stat.expected');
     u.mini = head.querySelector('.mini');
     u.sum = head.querySelector('.last-roll .sum');
-    head.querySelector('[data-a="roll"]').addEventListener('click', () => { roll(side, true); drawAll(); });
     return head;
   }
 
@@ -992,7 +1019,7 @@
     }
     s += '<text transform="translate(' + (W - 8) + ',' + (mt + ph/2) + ') rotate(90)" text-anchor="middle" font-family="Verdana" font-size="11" fill="#5b564e">Number of rolls</text>';
     if (!d.n){
-      s += '<text x="' + (ml + pw/2) + '" y="' + (showTheory ? mt + 30 : mt + ph/2) + '" text-anchor="middle" font-family="Verdana" font-size="12" fill="#5b564e">Press ROLL to start measuring</text>';
+      s += '<text x="' + (ml + pw/2) + '" y="' + (showTheory ? mt + 30 : mt + ph/2) + '" text-anchor="middle" font-family="Verdana" font-size="12" fill="#5b564e">Press Roll ' + SIDES[side].short.toLowerCase() + ' or Auto-roll to start</text>';
     }
     u.svg.innerHTML = s;
     // text alternative for the chart: the key numbers a sighted user reads off it
@@ -1012,11 +1039,12 @@
   /* ---------------- Toolbar ---------------- */
   /* Top panel controls, built once and never rebuilt (so auto-roll keeps
      running when the dice count changes): dice-count switch, Show-theory
-     toggle, and the shared Auto-roll / Clear buttons for both sets. */
+     toggle, and the run row: Auto-roll (both sets), Roll white, Roll black,
+     Clear (both histograms). */
   function buildToolbar(){
     const run = document.getElementById('run-controls');
     autoBtn = document.createElement('button');
-    autoBtn.className = 'btn toggle icon-btn';
+    autoBtn.className = 'btn auto icon-btn';
     setAutoBtn();
     autoBtn.addEventListener('click', toggleAuto);
     const clr = document.createElement('button');
@@ -1024,7 +1052,16 @@
     clr.textContent = 'Clear';
     clr.setAttribute('aria-label', 'Clear both histograms');
     clr.addEventListener('click', () => { clearData('L'); clearData('R'); drawAll(); announce('Both histograms cleared.'); });
-    run.append(autoBtn, clr);
+    // one ROLL button per set, colour-coded like its dice
+    const rollBtn = side => {
+      const b = document.createElement('button');
+      b.className = 'btn ' + (side === 'L' ? 'roll-white' : 'roll-black');
+      b.textContent = 'Roll ' + SIDES[side].short.toLowerCase();
+      b.dataset.a = 'roll';
+      b.addEventListener('click', () => { roll(side, true); drawAll(); });
+      return b;
+    };
+    run.append(autoBtn, rollBtn('L'), rollBtn('R'), clr);
 
     const sw = document.getElementById('count-switch');
     CFG.diceCounts.forEach(n => {
